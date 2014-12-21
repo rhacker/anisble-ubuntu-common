@@ -25,6 +25,7 @@
       apt: upgrade=yes
       sudo: yes
 
+    # Common packages
     - name: install packages
       apt: pkg={{ item }} state=latest install_recommends=no
       sudo: yes
@@ -39,7 +40,6 @@
         - fail2ban
 
     # Install docker
-
     - name: install docker
       sudo: yes
       apt: pkg=lxc-docker state=latest
@@ -47,6 +47,17 @@
     - name: ensure docker is running
       sudo: yes
       service: name=docker state=started enabled=true
+
+    # Install redis container
+    - name: docker pull nxqd/redis
+      tags: docker
+      sudo: yes
+      command: docker pull nxqd/redis
+
+    - name: docker run redis container
+      tags: docker
+      sudo: yes
+      command: docker run -dt --name redis nxqd/redis
 
     # Check fail2ban
     - name: ensure fail2ban is running
