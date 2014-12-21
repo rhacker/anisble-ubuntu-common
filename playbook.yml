@@ -6,6 +6,17 @@
     - action: shell whoami
       register: whoami
 
+    # Keys and repositories
+    # So you only need to update once
+    - name: install docker key
+      sudo: yes
+      apt_key: url=https://get.docker.io/gpg state=present
+
+    - name: add repository
+      sudo: yes
+      command: sh -c "echo deb http://get.docker.io/ubuntu docker main > /etc/apt/sources.list.d/docker.list"
+
+    # Update
     - name: update apt cache
       apt: update_cache=yes cache_valid_time=3600
       sudo: yes
@@ -27,11 +38,23 @@
         - zsh
         - fail2ban
 
+    # Install docker
+
+    - name: install docker
+      sudo: yes
+      apt: pkg=lxc-docker state=latest
+
+    - name: ensure docker is running
+      sudo: yes
+      service: name=docker state=started enabled=true
+
+    # Check fail2ban
     - name: ensure fail2ban is running
       tags: security
       sudo: yes
       action: service name=fail2ban state=restarted enabled=yes
 
+    # Forbid ssh root login
     - name: forbid SSH root login
       tags: security
       sudo: yes
@@ -39,6 +62,7 @@
       notify:
         - restart ssh
 
+    # Firewall
     - name: reset firewall
       sudo: yes
       action: shell ufw --force reset
@@ -55,9 +79,10 @@
       sudo: yes
       action: shell ufw --force enable
 
-    - name: clean up
-      sudo: yes
-      apt: pkg=clean
+    # Clean up
+    #- name: clean up
+    #  sudo: yes
+    #  apt: pkg=clean
 
   handlers:
     - name: restart ssh
