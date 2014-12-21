@@ -1,0 +1,65 @@
+---
+# This playbook deploys the whole application stack
+
+- hosts: all
+  tasks:
+    - action: shell whoami
+      register: whoami
+
+    - name: update apt cache
+      apt: update_cache=yes cache_valid_time=3600
+      sudo: yes
+
+    - name: upgrade the distro
+      apt: upgrade=yes
+      sudo: yes
+
+    - name: install packages
+      apt: pkg={{ item }} state=latest install_recommends=no
+      sudo: yes
+      with_items:
+        - build-essential
+        - vim
+        - runit
+        - git
+        - openssh-server
+        - tmux
+        - zsh
+        - fail2ban
+
+    - name: ensure fail2ban is running
+      tags: security
+      sudo: yes
+      action: service name=fail2ban state=restarted enabled=yes
+
+    - name: forbid SSH root login
+      tags: security
+      sudo: yes
+      lineinfile: destfile=/etc/ssh/sshd_config regexp="^PermitRootLogin" line="PermitRootLogin no" state=present
+      notify:
+        - restart ssh
+
+    - name: reset firewall
+      sudo: yes
+      action: shell ufw --force reset
+
+    - name: allow firewall authorized ports
+      sudo: yes
+      tags: security
+      action: shell ufw allow {{ item }}
+      with_items:
+        - 22
+        - 80
+
+    - name: reset firewall
+      sudo: yes
+      action: shell ufw --force enable
+
+    - name: clean up
+      sudo: yes
+      apt: pkg=clean
+
+  handlers:
+    - name: restart ssh
+      tags: security
+      action: service name=ssh state=restarted enabled=yes
